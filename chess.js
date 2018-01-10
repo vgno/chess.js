@@ -147,19 +147,9 @@ var Chess = function(fen) {
     a1: 112, b1: 113, c1: 114, d1: 115, e1: 116, f1: 117, g1: 118, h1: 119
   };
 
-  var ROOKS = {
-    w: [
-      { square: SQUARES.a1, flag: BITS.QSIDE_CASTLE },
-      { square: SQUARES.h1, flag: BITS.KSIDE_CASTLE }
-    ],
-    b: [
-      { square: SQUARES.a8, flag: BITS.QSIDE_CASTLE },
-      { square: SQUARES.h8, flag: BITS.KSIDE_CASTLE }
-    ]
-  };
-
   var board = new Array(128);
   var kings = { w: EMPTY, b: EMPTY };
+  var rooks = { w: [], b: [] };
   var turn = WHITE;
   var castling = { w: 0, b: 0 };
   var ep_square = EMPTY;
@@ -229,17 +219,65 @@ var Chess = function(fen) {
 
     turn = tokens[1];
 
+    rooks = { w: [], b: [] };
+
     if (tokens[2].indexOf('K') > -1) {
       castling.w |= BITS.KSIDE_CASTLE;
+      for (var sq = SQUARES.h1; sq >= SQUARES.c1; --sq) {
+        if (is_rook(board[sq], WHITE)) {
+          rooks[WHITE].push({ square: sq, flag: BITS.KSIDE_CASTLE });
+          break;
+        }
+      }
     }
     if (tokens[2].indexOf('Q') > -1) {
       castling.w |= BITS.QSIDE_CASTLE;
+      for (var sq = SQUARES.a1; sq <= SQUARES.g1; ++sq) {
+        if (is_rook(board[sq], WHITE)) {
+          rooks[WHITE].push({ square: sq, flag: BITS.QSIDE_CASTLE });
+          break;
+        }
+      }
     }
+    var white_frc_columns = tokens[2].match(/[A-H]/g);
+    var i, flag;
+    if (white_frc_columns !== null) {
+      for (i = 0; i < white_frc_columns.length; ++i) {
+        var sq =
+          SQUARES.a1 + (white_frc_columns[0].charCodeAt(0) - 'A'.charCodeAt(0));
+        flag = sq < kings[WHITE] ? BITS.QSIDE_CASTLE : BITS.KSIDE_CASTLE;
+        castling.w |= flag;
+        rooks[WHITE].push({ square: sq, flag: flag });
+      }
+    }
+
     if (tokens[2].indexOf('k') > -1) {
       castling.b |= BITS.KSIDE_CASTLE;
+      for (var sq = SQUARES.h8; sq >= SQUARES.c8; --sq) {
+        if (is_rook(board[sq], BLACK)) {
+          rooks[BLACK].push({ square: sq, flag: BITS.KSIDE_CASTLE });
+          break;
+        }
+      }
     }
     if (tokens[2].indexOf('q') > -1) {
       castling.b |= BITS.QSIDE_CASTLE;
+      for (var sq = SQUARES.a8; sq <= SQUARES.g8; ++sq) {
+        if (is_rook(board[sq], BLACK)) {
+          rooks[BLACK].push({ square: sq, flag: BITS.QSIDE_CASTLE });
+          break;
+        }
+      }
+    }
+    var black_frc_columns = tokens[2].match(/[a-h]/g);
+    if (black_frc_columns !== null) {
+      for (i = 0; i < black_frc_columns.length; ++i) {
+        var sq =
+          SQUARES.a1 + (black_frc_columns[0].charCodeAt(0) - 'A'.charCodeAt(0));
+        flag = sq < kings[BLACK] ? BITS.QSIDE_CASTLE : BITS.KSIDE_CASTLE;
+        castling.b |= flag;
+        rooks[BLACK].push({ square: sq, flag: flag });
+      }
     }
 
     ep_square = tokens[3] === '-' ? EMPTY : SQUARES[tokens[3]];
@@ -294,7 +332,10 @@ var Chess = function(fen) {
     }
 
     /* 5th criterion: 3th field is a valid castle-string? */
-    if (!/^(KQ?k?q?|Qk?q?|kq?|q|-)$/.test(tokens[2])) {
+    if (
+      !/^[C-HK]?[A-FQ]?[c-hk]?[a-fq]?$/.test(tokens[2]) &&
+      tokens[2] !== '-'
+    ) {
       return { valid: false, error_number: 5, error: errors[5] };
     }
 
@@ -379,17 +420,38 @@ var Chess = function(fen) {
     }
 
     var cflags = '';
+    var sq;
     if (castling[WHITE] & BITS.KSIDE_CASTLE) {
-      cflags += 'K';
+      sq = search_rook(board, WHITE, BITS.KSIDE_CASTLE);
+      if (is_outermost_rook(board, WHITE, BITS.KSIDE_CASTLE, sq)) {
+        cflags += 'K';
+      } else {
+        cflags += 'ABCDEFGH'.substring(file(sq), file(sq) + 1);
+      }
     }
     if (castling[WHITE] & BITS.QSIDE_CASTLE) {
-      cflags += 'Q';
+      sq = search_rook(board, WHITE, BITS.QSIDE_CASTLE);
+      if (is_outermost_rook(board, WHITE, BITS.QSIDE_CASTLE, sq)) {
+        cflags += 'Q';
+      } else {
+        cflags += 'ABCDEFGH'.substring(file(sq), file(sq) + 1);
+      }
     }
     if (castling[BLACK] & BITS.KSIDE_CASTLE) {
-      cflags += 'k';
+      sq = search_rook(board, BLACK, BITS.KSIDE_CASTLE);
+      if (is_outermost_rook(board, BLACK, BITS.KSIDE_CASTLE, sq)) {
+        cflags += 'k';
+      } else {
+        cflags += 'abcdefgh'.substring(file(sq), file(sq) + 1);
+      }
     }
     if (castling[BLACK] & BITS.QSIDE_CASTLE) {
-      cflags += 'q';
+      sq = search_rook(board, BLACK, BITS.QSIDE_CASTLE);
+      if (is_outermost_rook(board, BLACK, BITS.QSIDE_CASTLE, sq)) {
+        cflags += 'q';
+      } else {
+        cflags += 'abcdefgh'.substring(file(sq), file(sq) + 1);
+      }
     }
 
     /* do we have an empty castling flag? */
@@ -479,7 +541,7 @@ var Chess = function(fen) {
     return piece;
   }
 
-  function build_move(board, from, to, flags, promotion) {
+  function build_move(board, from, to, flags, promotion, rook_sq) {
     var move = {
       color: turn,
       from: from,
@@ -493,7 +555,9 @@ var Chess = function(fen) {
       move.promotion = promotion;
     }
 
-    if (board[to]) {
+    if (flags & (BITS.KSIDE_CASTLE | BITS.QSIDE_CASTLE)) {
+      move.rook_sq = rook_sq; // remember the position of the rook
+    } else if (board[to]) {
       move.captured = board[to].type;
     } else if (flags & BITS.EP_CAPTURE) {
       move.captured = PAWN;
@@ -502,7 +566,7 @@ var Chess = function(fen) {
   }
 
   function generate_moves(options) {
-    function add_move(board, moves, from, to, flags) {
+    function add_move(board, moves, from, to, flags, rook_sq) {
       /* if pawn promotion */
       if (
         board[from].type === PAWN &&
@@ -513,8 +577,33 @@ var Chess = function(fen) {
           moves.push(build_move(board, from, to, flags, pieces[i]));
         }
       } else {
-        moves.push(build_move(board, from, to, flags));
+        moves.push(build_move(board, from, to, flags, undefined, rook_sq));
       }
+    }
+
+    function check_castle(board, king_from, king_to, rook_from, rook_to, them) {
+      var sq;
+
+      // Check that no pieces are standing between the king and its destination
+      // square, and also between the rook and its destination square.
+      var king_left = Math.min(king_from, king_to);
+      var king_right = Math.max(king_from, king_to);
+      var left = Math.min(king_left, Math.min(rook_from, rook_to));
+      var right = Math.max(king_right, Math.max(rook_from, rook_to));
+      for (sq = left; sq <= right; ++sq) {
+        if (sq != king_from && sq != rook_from && board[sq]) {
+          return false;
+        }
+      }
+
+      // Check that none of the squares on the king's way are under attack.
+      for (sq = king_left; sq <= king_right; ++sq) {
+        if (attacked(them, sq)) {
+          return false;
+        }
+      }
+
+      return true;
     }
 
     var moves = [];
@@ -609,34 +698,39 @@ var Chess = function(fen) {
     if (!single_square || last_sq === kings[us]) {
       /* king-side castling */
       if (castling[us] & BITS.KSIDE_CASTLE) {
-        var castling_from = kings[us];
-        var castling_to = castling_from + 2;
+        var king_from = kings[us];
+        var king_to = us === WHITE ? SQUARES.g1 : SQUARES.g8;
+        var rook_from = search_rook(board, us, BITS.KSIDE_CASTLE);
+        var rook_to = king_to - 1;
 
-        if (
-          board[castling_from + 1] == null &&
-          board[castling_to] == null &&
-          !attacked(them, kings[us]) &&
-          !attacked(them, castling_from + 1) &&
-          !attacked(them, castling_to)
-        ) {
-          add_move(board, moves, kings[us], castling_to, BITS.KSIDE_CASTLE);
+        if (check_castle(board, king_from, king_to, rook_from, rook_to, them)) {
+          add_move(
+            board,
+            moves,
+            king_from,
+            king_to,
+            BITS.KSIDE_CASTLE,
+            rook_from
+          );
         }
       }
 
       /* queen-side castling */
       if (castling[us] & BITS.QSIDE_CASTLE) {
-        var castling_from = kings[us];
-        var castling_to = castling_from - 2;
+        var king_from = kings[us];
+        var king_to = us === WHITE ? SQUARES.c1 : SQUARES.c8;
+        var rook_from = search_rook(board, us, BITS.QSIDE_CASTLE);
+        var rook_to = king_to + 1;
 
-        if (
-          board[castling_from - 1] == null &&
-          board[castling_from - 2] == null &&
-          board[castling_from - 3] == null &&
-          !attacked(them, kings[us]) &&
-          !attacked(them, castling_from - 1) &&
-          !attacked(them, castling_to)
-        ) {
-          add_move(board, moves, kings[us], castling_to, BITS.QSIDE_CASTLE);
+        if (check_castle(board, king_from, king_to, rook_from, rook_to, them)) {
+          add_move(
+            board,
+            moves,
+            king_from,
+            king_to,
+            BITS.QSIDE_CASTLE,
+            rook_from
+          );
         }
       }
     }
@@ -659,6 +753,44 @@ var Chess = function(fen) {
     }
 
     return legal_moves;
+  }
+
+  function is_rook(piece, color) {
+    return (
+      typeof piece !== 'undefined' &&
+      piece !== null &&
+      piece.type === ROOK &&
+      piece.color == color
+    );
+  }
+
+  function search_rook(board, us, flag) {
+    for (var i = 0, len = rooks[us].length; i < len; i++) {
+      if (flag & rooks[us][i].flag) {
+        return rooks[us][i].square;
+      }
+    }
+    return null;
+  }
+
+  function is_outermost_rook(board, us, flag, sq) {
+    var end_sq;
+    if (flag == BITS.KSIDE_CASTLE) {
+      var end_sq = us == WHITE ? SQUARES.h1 : SQUARES.h8;
+      while (++sq <= end_sq) {
+        if (is_rook(board[sq], us)) {
+          return false;
+        }
+      }
+    } else {
+      var end_sq = us == WHITE ? SQUARES.a1 : SQUARES.a8;
+      while (--sq >= end_sq) {
+        if (is_rook(board[sq], us)) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   /* convert a move from 0x88 coordinates to Standard Algebraic Notation
@@ -881,6 +1013,7 @@ var Chess = function(fen) {
   function make_move(move) {
     var us = turn;
     var them = swap_color(us);
+    var old_to = board[move.to];
     push(move);
 
     board[move.to] = board[move.from];
@@ -907,14 +1040,14 @@ var Chess = function(fen) {
       /* if we castled, move the rook next to the king */
       if (move.flags & BITS.KSIDE_CASTLE) {
         var castling_to = move.to - 1;
-        var castling_from = move.to + 1;
-        board[castling_to] = board[castling_from];
-        board[castling_from] = null;
+        var castling_from = move.rook_sq;
+        board[castling_to] = old_to === null ? board[castling_from] : old_to;
+        if (castling_from !== move.to) board[castling_from] = null;
       } else if (move.flags & BITS.QSIDE_CASTLE) {
         var castling_to = move.to + 1;
-        var castling_from = move.to - 2;
-        board[castling_to] = board[castling_from];
-        board[castling_from] = null;
+        var castling_from = move.rook_sq;
+        board[castling_to] = old_to === null ? board[castling_from] : old_to;
+        if (castling_from !== move.to) board[castling_from] = null;
       }
 
       /* turn off castling */
@@ -923,12 +1056,12 @@ var Chess = function(fen) {
 
     /* turn off castling if we move a rook */
     if (castling[us]) {
-      for (var i = 0, len = ROOKS[us].length; i < len; i++) {
+      for (var i = 0, len = rooks[us].length; i < len; i++) {
         if (
-          move.from === ROOKS[us][i].square &&
-          castling[us] & ROOKS[us][i].flag
+          move.from === rooks[us][i].square &&
+          castling[us] & rooks[us][i].flag
         ) {
-          castling[us] ^= ROOKS[us][i].flag;
+          castling[us] ^= rooks[us][i].flag;
           break;
         }
       }
@@ -936,12 +1069,12 @@ var Chess = function(fen) {
 
     /* turn off castling if we capture a rook */
     if (castling[them]) {
-      for (var i = 0, len = ROOKS[them].length; i < len; i++) {
+      for (var i = 0, len = rooks[them].length; i < len; i++) {
         if (
-          move.to === ROOKS[them][i].square &&
-          castling[them] & ROOKS[them][i].flag
+          move.to === rooks[them][i].square &&
+          castling[them] & rooks[them][i].flag
         ) {
-          castling[them] ^= ROOKS[them][i].flag;
+          castling[them] ^= rooks[them][i].flag;
           break;
         }
       }
@@ -990,6 +1123,8 @@ var Chess = function(fen) {
     var us = turn;
     var them = swap_color(turn);
 
+    var old_from = board[move.from];
+
     board[move.from] = board[move.to];
     board[move.from].type = move.piece; // to undo any promotions
     board[move.to] = null;
@@ -1009,15 +1144,15 @@ var Chess = function(fen) {
     if (move.flags & (BITS.KSIDE_CASTLE | BITS.QSIDE_CASTLE)) {
       var castling_to, castling_from;
       if (move.flags & BITS.KSIDE_CASTLE) {
-        castling_to = move.to + 1;
+        castling_to = move.rook_sq;
         castling_from = move.to - 1;
       } else if (move.flags & BITS.QSIDE_CASTLE) {
-        castling_to = move.to - 2;
+        castling_to = move.rook_sq;
         castling_from = move.to + 1;
       }
 
-      board[castling_to] = board[castling_from];
-      board[castling_from] = null;
+      board[castling_to] = old_from === null ? board[castling_from] : old_from;
+      if (castling_from !== move.from) board[castling_from] = null;
     }
 
     return move;
@@ -1064,8 +1199,8 @@ var Chess = function(fen) {
         return algebraic(from);
       } else if (same_file > 0) {
         /* if the moving piece rests on the same file, use the rank symbol as the
-       * disambiguator
-       */
+         * disambiguator
+         */
         return algebraic(from).charAt(1);
       } else {
         /* else use the file symbol */
@@ -1250,11 +1385,11 @@ var Chess = function(fen) {
     KING: KING,
     SQUARES: (function() {
       /* from the ECMA-262 spec (section 12.6.4):
-                 * "The mechanics of enumerating the properties ... is
-                 * implementation dependent"
-                 * so: for (var sq in SQUARES) { keys.push(sq); } might not be
-                 * ordered correctly
-                 */
+       * "The mechanics of enumerating the properties ... is
+       * implementation dependent"
+       * so: for (var sq in SQUARES) { keys.push(sq); } might not be
+       * ordered correctly
+       */
       var keys = [];
       for (var i = SQUARES.a8; i <= SQUARES.h1; i++) {
         if (i & 0x88) {
@@ -1542,7 +1677,7 @@ var Chess = function(fen) {
       }
 
       /* load the starting position indicated by [Setup '1'] and
-      * [FEN position] */
+       * [FEN position] */
       if (headers['SetUp'] === '1') {
         if (!('FEN' in headers && load(headers['FEN'], true))) {
           // second argument to load: don't clear the headers
