@@ -15,6 +15,12 @@ describe("Perft", function() {
       depth: 4, nodes: 43238},
     {fen: 'rnbqkbnr/p3pppp/2p5/1pPp4/3P4/8/PP2PPPP/RNBQKBNR w KQkq b6 0 4',
       depth: 3, nodes: 23509},
+
+    // Chess960
+    {fen: 'bbnrqknr/pppppppp/8/8/8/8/PPPPPPPP/BBNRQKNR w KQkq - 0 1',
+      depth: 3, nodes: 8992},
+    {fen: 'bbnRqknr/pppppppp/8/8/8/8/PPPPPPPP/BBNRQKN1 w Qk - 0 1',
+      depth: 3, nodes: 11627},
   ];
 
   perfts.forEach(function(perft) {
@@ -23,7 +29,7 @@ describe("Perft", function() {
 
     it(perft.fen, function() {
       var nodes = chess.perft(perft.depth);
-      assert(nodes == perft.nodes);
+      assert.equal(nodes, perft.nodes);
     });
 
   });
@@ -238,22 +244,13 @@ describe("Algebraic Notation", function() {
 
   positions.forEach(function(position) {
     var chess = new Chess();
-    var passed = true;
     chess.load(position.fen);
 
     it(position.fen, function() {
       var moves = chess.moves();
-      if (moves.length != position.moves.length) {
-        passed = false;
-      } else {
-        for (var j = 0; j < moves.length; j++) {
-          if (position.moves.indexOf(moves[j]) == -1) {
-            passed = false;
-            break;
-          }
-        }
-      }
-      assert(passed);
+      moves.sort();
+      position.moves.sort();
+      assert.deepEqual(moves, position.moves);
     });
 
   });
@@ -389,6 +386,10 @@ describe("FEN", function() {
 
     /* bad piece (X)*/
     {fen: '1nbqkbn1/pppp1ppX/8/4p3/4P3/8/PPPP1PPP/1NBQKBN1 b - - 1 2', should_pass: false},
+
+    /* Chess960 */
+    {fen: 'nbrkbqrn/pppppppp/8/8/8/8/PPPPPPPP/NBRKBQRN w KQkq - 0 1', should_pass: true},
+    {fen: 'nbkrbqrn/pp1ppp1p/6p1/2p5/P2N2P1/8/1PPPPP1P/RBRKBQ1N w C - 8 8', should_pass: true},
   ];
 
   positions.forEach(function(position) {
@@ -396,7 +397,11 @@ describe("FEN", function() {
 
     it(position.fen + ' (' + position.should_pass + ')', function() {
       chess.load(position.fen);
-      assert(chess.fen() == position.fen == position.should_pass);
+      if (position.should_pass) {
+        assert.equal(chess.fen(), position.fen);
+      } else {
+        assert.notEqual(chess.fen(), position.fen);
+      }
     });
 
   });
@@ -990,6 +995,9 @@ describe("Validate FEN", function() {
     {fen: 'r3k2r/8/p4p2/3p2p1/4b3/2R2PP1/P6P/4R1K1 b kq - 0 27', error_number: 0},
     {fen: 'r1rb2k1/5ppp/pqp5/3pPb2/QB1P4/2R2N2/P4PPP/2R3K1 b - - 7 23', error_number: 0},
     {fen: '3r1r2/3P2pk/1p1R3p/1Bp2p2/6q1/4Q3/PP3P1P/7K w - - 4 30', error_number: 0},
+
+    // A Chess960 starting position.
+    {fen: 'nbrkbqrn/pppppppp/8/8/8/8/PPPPPPPP/NBRKBQRN w KQkq - 0 1', error_number: 0},
   ];
 
   positions.forEach(function(position) {
@@ -1028,7 +1036,7 @@ describe("History", function() {
         {color: 'w', from: 'b1', to: 'c3', flags: 'n', piece: 'n', san: 'Nc3'},
         {color: 'b', from: 'f8', to: 'e7', flags: 'n', piece: 'b', san: 'Be7'},
         {color: 'w', from: 'c1', to: 'g5', flags: 'n', piece: 'b', san: 'Bg5'},
-        {color: 'b', from: 'e8', to: 'g8', flags: 'k', piece: 'k', san: 'O-O'},
+        {color: 'b', from: 'e8', to: 'g8', flags: 'k', piece: 'k', san: 'O-O', rook_sq: 7},
         {color: 'w', from: 'e2', to: 'e3', flags: 'n', piece: 'p', san: 'e3'},
         {color: 'b', from: 'h7', to: 'h6', flags: 'n', piece: 'p', san: 'h6'},
         {color: 'w', from: 'g5', to: 'h4', flags: 'n', piece: 'b', san: 'Bh4'},
@@ -1049,7 +1057,7 @@ describe("History", function() {
         {color: 'b', from: 'a7', to: 'a6', flags: 'n', piece: 'p', san: 'a6'},
         {color: 'w', from: 'd4', to: 'c5', flags: 'c', piece: 'p', captured: 'p', san: 'dxc5'},
         {color: 'b', from: 'b6', to: 'c5', flags: 'c', piece: 'p', captured: 'p', san: 'bxc5'},
-        {color: 'w', from: 'e1', to: 'g1', flags: 'k', piece: 'k', san: 'O-O'},
+        {color: 'w', from: 'e1', to: 'g1', flags: 'k', piece: 'k', san: 'O-O', rook_sq: 119},
         {color: 'b', from: 'a8', to: 'a7', flags: 'n', piece: 'r', san: 'Ra7'},
         {color: 'w', from: 'b5', to: 'e2', flags: 'n', piece: 'b', san: 'Be2'},
         {color: 'b', from: 'b8', to: 'd7', flags: 'n', piece: 'n', san: 'Nd7'},
@@ -1099,43 +1107,31 @@ describe("History", function() {
         {color: 'b', from: 'h8', to: 'g8', flags: 'n', piece: 'k', san: 'Kg8'},
         {color: 'w', from: 'd3', to: 'c4', flags: 'n', piece: 'b', san: 'Bc4'},
         {color: 'b', from: 'g8', to: 'h8', flags: 'n', piece: 'k', san: 'Kh8'},
-        {color: 'w', from: 'e4', to: 'f4', flags: 'n', piece: 'q', san: 'Qf4'}],
-      fen: '4q2k/2r1r3/4PR1p/p1p5/P1Bp1Q1P/1P6/6P1/6K1 b - - 4 41'}
+        {color: 'w', from: 'e4', to: 'f4', flags: 'n', piece: 'q', san: 'Qf4'}]},
+
+     // Chess960 example, including having to disambiguate rooks when castling.
+     {verbose: false,
+      start: 'nbrkbqrn/pppppppp/8/8/8/8/PPPPPPPP/NBRKBQRN w KQkq - 0 1',
+      moves: ['g4', 'c5', 'Rg3', 'O-O-O', 'a4', 'g6', 'Nb3', 'Nb6', 'Nd4', 'Na8',
+              'Ra3', 'Nb6', 'Ra1', 'Na8', 'O-O-O', 'Nb6'],
+      fen: '1bkrbqrn/pp1ppp1p/1n4p1/2p5/P2N2P1/8/1PPPPP1P/RBKRBQ1N w - - 10 9'},
   ];
 
   tests.forEach(function(t, i) {
-    var passed = true;
-
     it(i, function() {
-      chess.reset();
+      if (t.start) {
+        chess.load(t.start);
+      } else {
+        chess.reset();
+      }
 
       for (var j = 0; j < t.moves.length; j++) {
-        chess.move(t.moves[j])
+        assert.notEqual(chess.move(t.moves[j]), null, "Move " + t.moves[j])
       }
 
       var history = chess.history({verbose: t.verbose});
-      if (t.fen != chess.fen()) {
-        passed = false;
-      } else if (history.length != t.moves.length) {
-        passed = false;
-      } else {
-        for (var j = 0; j < t.moves.length; j++) {
-          if (!t.verbose) {
-            if (history[j] != t.moves[j]) {
-              passed = false;
-              break;
-            }
-          } else {
-            for (var key in history[j]) {
-              if (history[j][key] != t.moves[j][key]) {
-                passed = false;
-                break;
-              }
-            }
-          }
-        }
-      }
-      assert(passed);
+      assert.equal(chess.fen(), t.fen);
+      assert.deepEqual(history, t.moves);
     });
 
   });
@@ -1268,18 +1264,18 @@ describe('Regression Tests', function() {
 
   it('Github Issue #85 (white) - SetUp and FEN should be accepted in load_pgn', function() {
        var chess = new Chess();
-       var pgn = ['[SetUp "1"]', '[FEN "7k/5K2/4R3/8/8/8/8/8 w KQkq - 0 1"]', "", '1. Rh6#'];
+       var pgn = ['[SetUp "1"]', '[FEN "7k/5K2/4R3/8/8/8/8/8 w - - 0 1"]', "", '1. Rh6#'];
        var result = chess.load_pgn(pgn.join("\n"));
        assert(result);
-       assert(chess.fen() === '7k/5K2/7R/8/8/8/8/8 b KQkq - 1 1');
+       assert(chess.fen() === '7k/5K2/7R/8/8/8/8/8 b - - 1 1');
   });
 
   it('Github Issue #85 (black) - SetUp and FEN should be accepted in load_pgn', function() {
        var chess = new Chess();
-       var pgn = ['[SetUp "1"]', '[FEN "r4r1k/1p4b1/3p3p/5qp1/1RP5/6P1/3NP3/2Q2RKB b KQkq - 0 1"]', "", '1. ... Qc5+'];
+       var pgn = ['[SetUp "1"]', '[FEN "r4r1k/1p4b1/3p3p/5qp1/1RP5/6P1/3NP3/2Q2RKB b - - 0 1"]', "", '1. ... Qc5+'];
        var result = chess.load_pgn(pgn.join("\n"));
        assert(result);
-       assert(chess.fen() === 'r4r1k/1p4b1/3p3p/2q3p1/1RP5/6P1/3NP3/2Q2RKB w KQkq - 1 2');
+       assert(chess.fen() === 'r4r1k/1p4b1/3p3p/2q3p1/1RP5/6P1/3NP3/2Q2RKB w - - 1 2');
   });
 
   it('Github Issue #98 (white) - Wrong movement number after setting a position via FEN', function () {
