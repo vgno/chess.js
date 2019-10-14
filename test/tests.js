@@ -390,6 +390,7 @@ describe("FEN", function() {
     /* Chess960 */
     {fen: 'nbrkbqrn/pppppppp/8/8/8/8/PPPPPPPP/NBRKBQRN w KQkq - 0 1', should_pass: true},
     {fen: 'nbkrbqrn/pp1ppp1p/6p1/2p5/P2N2P1/8/1PPPPP1P/RBRKBQ1N w C - 8 8', should_pass: true},
+    {fen: 'rbqnnkbr/pppppppp/8/8/8/8/PPPPPPPP/RBQNNKBR w Kk - 0 1', should_pass: true},
   ];
 
   positions.forEach(function(position) {
@@ -1138,6 +1139,20 @@ describe("History", function() {
       moves: ['g4', 'c5', 'Rg3', 'O-O-O', 'a4', 'g6', 'Nb3', 'Nb6', 'Nd4', 'Na8',
               'Ra3', 'Nb6', 'Ra1', 'Na8', 'O-O-O', 'Nb6'],
       fen: '1bkrbqrn/pp1ppp1p/1n4p1/2p5/P2N2P1/8/1PPPPP1P/RBKRBQ1N w - - 10 9'},
+
+     // Chess960 match
+     {verbose: false,
+      start: 'rbqnnkbr/pppppppp/8/8/8/8/PPPPPPPP/RBQNNKBR w HAha - 0 1',
+      moves: ['f3', 'c6', 'c4', 'e5', 'd4', 'd6', 'Bd3', 'Ne6', 'e3', 'Nf6', 'Qc3',
+              'exd4', 'exd4', 'h5', 'Be3', 'Bh7', 'd5', 'cxd5', 'cxd5', 'Qxc3', 'Nxc3',
+              'Nc5', 'Bxh7', 'Rxh7', 'Rc1', 'a6', 'Bg5', 'h4', 'Bxf6', 'gxf6', 'Ne4',
+              'Kg7', 'Nxc5', 'dxc5', 'Rxc5', 'Ba7', 'Rc3', 'Rh5', 'Rd3', 'Re5', 'f4',
+              'Re4', 'Nf3', 'Rc8', 'Rc3', 'Rce8', 'Rc2', 'Rxf4', 'd6', 'Rd8', 'Rd2',
+              'Re4', 'd7', 'f5', 'g3', 'hxg3', 'hxg3', 'Re7', 'Rdh2', 'Rexd7', 'Rh7+',
+              'Kf6', 'Kg2', 'Be3', 'Rf1', 'Rg8', 'Kh3', 'Rd5', 'Nh4', 'Rg5', 'g4', 'f4',
+              'Ng2', 'Rd3', 'Kh4', 'Rg7', 'g5+', 'Rxg5', 'Nxe3', 'Rxe3', 'Rxf4+', 'Kg6',
+              'Rhxf7', 'Rh5+', 'Kg4', 'Rg5+'],
+      fen: '8/1p3R2/p5k1/6r1/5RK1/4r3/PP6/8 w - - 3 44'},
   ];
 
   tests.forEach(function(t, i) {

@@ -1676,13 +1676,10 @@ var Chess = function(fen) {
         set_header([key, headers[key]]);
       }
 
-      /* load the starting position indicated by [Setup '1'] and
-       * [FEN position] */
-      if (headers['SetUp'] === '1') {
-        if (!('FEN' in headers && load(headers['FEN'], true))) {
-          // second argument to load: don't clear the headers
-          return false;
-        }
+      /* load the starting position if any FEN header */
+      if ('FEN' in headers && !load(headers['FEN'], true)) {
+        // second argument to load: don't clear the headers
+        return false;
       }
 
       /* delete header to get the moves */
