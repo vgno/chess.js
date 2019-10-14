@@ -7,7 +7,6 @@
   "homepage": "https://github.com/jhlywa/chess.js",
   "keywords": ["chess"],
   "main": "chess.js",
-  "filename": "chess.min.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/jhlywa/chess.js.git"
@@ -21,11 +20,9 @@
   ],
   "devDependencies": {
     "mocha": "^2.2.4",
-    "chai": "^2.3.0",
-    "uglify-js": "^2.4.21"
+    "chai": "^2.3.0"
   },
   "scripts": {
-    "test": "mocha",
-    "minify": "uglifyjs chess.js -c -m --comments 'license' > chess.min.js"
+    "test": "mocha"
   }
 }
