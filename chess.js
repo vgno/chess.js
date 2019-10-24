@@ -244,7 +244,7 @@ var Chess = function(fen) {
     if (white_frc_columns !== null) {
       for (i = 0; i < white_frc_columns.length; ++i) {
         var sq =
-          SQUARES.a1 + (white_frc_columns[0].charCodeAt(0) - 'A'.charCodeAt(0));
+          SQUARES.a1 + (white_frc_columns[i].charCodeAt(0) - 'A'.charCodeAt(0));
         flag = sq < kings[WHITE] ? BITS.QSIDE_CASTLE : BITS.KSIDE_CASTLE;
         castling.w |= flag;
         rooks[WHITE].push({ square: sq, flag: flag });
@@ -273,7 +273,7 @@ var Chess = function(fen) {
     if (black_frc_columns !== null) {
       for (i = 0; i < black_frc_columns.length; ++i) {
         var sq =
-          SQUARES.a8 + (black_frc_columns[0].charCodeAt(0) - 'a'.charCodeAt(0));
+          SQUARES.a8 + (black_frc_columns[i].charCodeAt(0) - 'a'.charCodeAt(0));
         flag = sq < kings[BLACK] ? BITS.QSIDE_CASTLE : BITS.KSIDE_CASTLE;
         castling.b |= flag;
         rooks[BLACK].push({ square: sq, flag: flag });
