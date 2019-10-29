@@ -577,7 +577,9 @@ var Chess = function(fen) {
           moves.push(build_move(board, from, to, flags, pieces[i]));
         }
       } else {
-        moves[rook_sq ? 'unshift' : 'push'](build_move(board, from, to, flags, undefined, rook_sq));
+        // prepend castling moves
+        var isCastling = flags & (BITS.KSIDE_CASTLE | BITS.QSIDE_CASTLE);
+        moves[isCastling ? 'unshift' : 'push'](build_move(board, from, to, flags, undefined, rook_sq));
       }
     }
 
